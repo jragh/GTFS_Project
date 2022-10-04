@@ -70,7 +70,7 @@ app.layout = dbc.Container(fluid = True, children = [
                 dbc.Button(id = 'reset-map-button', outline=True, color='secondary', children = ['Reset Map']),
                 html.P(id = 'description-paragraph', children = ['Feel free to select a TTC Bus Route to view line details at a closer glance. Or just view all the currently running vehicles on the network!'])], className = "d-grid gap-1"),
             html.Div(id = 'stop-selection-div', children = []),
-            html.Div(id='stop-predictions-div', children = [])
+            html.Div(id = 'parent-stop-predictions-div', children = [html.Div(id='stop-predictions-div', children = [])])
             ]),
         dbc.Col(id = 'map-area', align = "end", width = 9, style ={"height": "100vh"}, children = [
             html.Div(id = 'map-div', style ={"height": "100%"}, children = [dcc.Graph(style = {'height': "100vh"}, id='main-graph')])
@@ -86,7 +86,7 @@ def dropdown_menu_reset(n_clicks):
         return [""]
 
 
-@app.callback([Output('map-div', 'children'), Output('description-paragraph', 'children'), Output('reset-store', 'data'), Output('stop-selection-div', 'children')],Input('reset-map-button', 'n_clicks'), Input('select-line-button', 'n_clicks'), State('line-selection', 'value'), prevent_initial_call=True)
+@app.callback([Output('map-div', 'children'), Output('description-paragraph', 'children'), Output('reset-store', 'data'), Output('stop-selection-div', 'children'), Output('parent-stop-predictions-div', 'children')],Input('reset-map-button', 'n_clicks'), Input('select-line-button', 'n_clicks'), State('line-selection', 'value'), prevent_initial_call=True)
 def update_graph(n_clicks, n_clicks2, state1):
     triggered_id = ctx.triggered_id
     print(triggered_id)
@@ -124,7 +124,7 @@ def map_reset(n_clicks):
 
     ## Callback 
 
-    return [[dcc.Graph(id='main-graph', style = {'height': "100vh"}, figure = go.Figure(data = [data_int], layout = layout_int))], ['Feel free to select a TTC Bus Route to view line details at a closer glance. Or just view all the currently running vehicles on the network!'], "0", []]
+    return [[dcc.Graph(id='main-graph', style = {'height': "100vh"}, figure = go.Figure(data = [data_int], layout = layout_int))], ['Feel free to select a TTC Bus Route to view line details at a closer glance. Or just view all the currently running vehicles on the network!'], "0", [], [html.Div(id='stop-predictions-div', children = [])]]
 
 
 def line_selection_zoom(value_line):
@@ -213,7 +213,7 @@ def line_selection_zoom(value_line):
         stops_children = [stops_break, stops_title, stops_dropdown,stops_desc, predictions_store, prediction_stop_id_store, predictions_interval, html.Br(), predictions_button_activate]
 
 
-        return [[dcc.Graph(id='main-graph', style = {'height': "100vh"}, figure = go.Figure(data = [stops_smb, vehicle_smb], layout = layout_int))], [f"You have selected line {value_route}!"], value_route, stops_children]
+        return [[dcc.Graph(id='main-graph', style = {'height': "100vh"}, figure = go.Figure(data = [stops_smb, vehicle_smb], layout = layout_int))], [f"You have selected line {value_route}!"], value_route, stops_children, [html.Div(id='stop-predictions-div', children = [])]]
 
     else:
         return dash.no_update
@@ -234,11 +234,9 @@ def provide_predictions(prediction_button_click, value_line, stop_value):
 
         predictions_dict = xmltodict.parse(requests.get(request_predictions).content, attr_prefix = '')
 
-        print(predictions_dict)
-
         
         ## Main Block for generating predictions from the api call ##
-        ## Currently 
+        ## Currently need a fix for returning bad results from api (No Busses arriving at stop, stop id / route combination does not exist, etc) ##
 
         if isinstance(predictions_dict['body']['predictions']['direction'], dict) == True:
 
@@ -260,19 +258,37 @@ def provide_predictions(prediction_button_click, value_line, stop_value):
 
             preds_provided.sort(key = lambda y: y[1])
 
-        header = html.H4('Predictions')
+        header = html.H4('Stop Arrival Predictions')
         subheader = html.H6(f'Showing Next Arrival Predictions for {stop_value}')
 
+        accordion_items = []
+       
+        ## While loop to return only 3 at most predictions ##
+        counter = 0
+        max_len = len(preds_provided)
 
-        ## Current Work in Progress ##
+        while counter < 3:
 
-        # accordion_div = html.Div(id='accordion-div', children = [
-        #     dbc.Accordion
-        # ])
+            accordion_items.append(dbc.AccordionItem(
+                id=f'prediction-{counter}', children = [
+                    html.P(f'This is Prediction {counter}')
+                ], title = f'{preds_provided[counter][0]} - {preds_provided[counter][1]} seconds'
+            ))
 
-        ## Current Work in Progress End ##
+            counter += 1
 
-        return [[header, subheader], stop_value_updated]
+            if counter == max_len:
+
+                break
+
+        accordion_div = html.Div(id='accordion-div', children = [
+            dbc.Accordion(id = 'predictions-accordion', children = accordion_items, flush = True)
+        ])
+
+        return [[html.Br(),header, subheader, accordion_div], stop_value_updated]
+
+    else:
+        return dash.no_update
 
         
 
