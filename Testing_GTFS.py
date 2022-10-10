@@ -238,59 +238,139 @@ def provide_predictions(prediction_button_click, value_line, stop_value):
         ## Main Block for generating predictions from the api call ##
         ## Currently need a fix for returning bad results from api (No Busses arriving at stop, stop id / route combination does not exist, etc) ##
 
-        if isinstance(predictions_dict['body']['predictions']['direction'], dict) == True:
+        if 'direction' in predictions_dict['body']['predictions']:
+        
+            if isinstance(predictions_dict['body']['predictions']['direction'], dict) == True:
 
-            title_a = predictions_dict['body']['predictions']['direction']['title']
+                title_a = predictions_dict['body']['predictions']['direction']['title']
 
-            if isinstance(predictions_dict['body']['predictions']['direction']['prediction'], list) == True:
+                if isinstance(predictions_dict['body']['predictions']['direction']['prediction'], list) == True:
 
-                preds_provided = [(title_a, int(i['seconds'])) for i in predictions_dict['body']['predictions']['direction']['prediction']]
+                    preds_provided = [(title_a, int(i['seconds'])) for i in predictions_dict['body']['predictions']['direction']['prediction']]
+
+                    preds_provided.sort(key = lambda y: y[1])
+
+                elif isinstance(predictions_dict['body']['predictions']['direction']['prediction'], dict) == True:
+
+                    preds_provided = [(title_a, int(predictions_dict['body']['predictions']['direction']['prediction']['seconds']))]
+
+            elif isinstance(predictions_dict['body']['predictions']['direction'], list) == True:
+
+                preds_provided = [(i['title'], int(j['seconds'])) for i in predictions_dict['body']['predictions']['direction'] for j in i['prediction']]
 
                 preds_provided.sort(key = lambda y: y[1])
 
-            elif isinstance(predictions_dict['body']['predictions']['direction']['prediction'], dict) == True:
+            header = html.H4('Stop Arrival Predictions')
+            subheader = html.H6(f'Showing Next Arrival Predictions for {stop_value}')
 
-                preds_provided = [(title_a, int(predictions_dict['body']['predictions']['direction']['prediction']['seconds']))]
+            accordion_items = []
+        
+            ## While loop to return only 3 at most predictions ##
+            counter = 0
+            max_len = len(preds_provided)
 
-        elif isinstance(predictions_dict['body']['predictions']['direction'], list) == True:
+            while counter < 3:
 
-            preds_provided = [(i['title'], int(j['seconds'])) for i in predictions_dict['body']['predictions']['direction'] for j in i['prediction']]
+                accordion_items.append(dbc.AccordionItem(
+                    id=f'prediction-{counter}', children = [
+                        html.P(f'This is Prediction {counter}')
+                    ], title = f'{preds_provided[counter][0]} - {preds_provided[counter][1]} seconds'
+                ))
 
-            preds_provided.sort(key = lambda y: y[1])
+                counter += 1
 
-        header = html.H4('Stop Arrival Predictions')
-        subheader = html.H6(f'Showing Next Arrival Predictions for {stop_value}')
+                if counter == max_len:
 
-        accordion_items = []
-       
-        ## While loop to return only 3 at most predictions ##
-        counter = 0
-        max_len = len(preds_provided)
+                    break
 
-        while counter < 3:
+            accordion_div = html.Div(id='accordion-div', children = [
+                dbc.Accordion(id = 'predictions-accordion', children = accordion_items, flush = True)
+            ])
 
-            accordion_items.append(dbc.AccordionItem(
-                id=f'prediction-{counter}', children = [
-                    html.P(f'This is Prediction {counter}')
-                ], title = f'{preds_provided[counter][0]} - {preds_provided[counter][1]} seconds'
-            ))
+            return [[html.Br(),header, subheader, accordion_div], stop_value_updated]
+        
+        else:
 
-            counter += 1
+            header = html.H4('Stop Arrival Predictions')
+            subheader = html.H6(f'Showing Next Arrival Predictions for {stop_value}')
 
-            if counter == max_len:
-
-                break
-
-        accordion_div = html.Div(id='accordion-div', children = [
-            dbc.Accordion(id = 'predictions-accordion', children = accordion_items, flush = True)
-        ])
-
-        return [[html.Br(),header, subheader, accordion_div], stop_value_updated]
+            return [[html.Br(), header, subheader, html.Br()], stop_value_updated]
 
     else:
         return dash.no_update
 
         
+
+## This callback will now use the stop value updated, and the interval timer to provide predictions for the bus stops ##
+
+@app.callback(Output('accordion-div', 'children'),[Input('predictions-timing-component', 'n_intervals'), State('reset-store', 'data'), State('predictions-store', 'data')], prevent_initial_call=True)
+def predictions_interval_update(n_intervals, reset_store, predictions_store):
+    if reset_store != '0' and predictions_store != '0':
+
+        request_predictions = f'https://retro.umoiq.com/service/publicXMLFeed?command=predictions&a=ttc&r={reset_store}&s={predictions_store}'
+
+        predictions_dict = xmltodict.parse(requests.get(request_predictions).content, attr_prefix = '')
+
+        
+
+        ## Main Block for returning predictions from api call ## 
+        ## Currently need a fix for returning bad results from api (No Busses arriving at stop, stop id / route combination does not exist, etc) ##
+
+        if 'direction' in predictions_dict['body']['predictions']:
+
+            if isinstance(predictions_dict['body']['predictions']['direction'], dict) == True:
+
+                title_a = predictions_dict['body']['predictions']['direction']['title']
+
+                if isinstance(predictions_dict['body']['predictions']['direction']['prediction'], list) == True:
+
+                    preds_provided = [(title_a, int(i['seconds'])) for i in predictions_dict['body']['predictions']['direction']['prediction']]
+
+                    preds_provided.sort(key = lambda y: y[1])
+
+                elif isinstance(predictions_dict['body']['predictions']['direction']['prediction'], dict) == True:
+
+                    preds_provided = [(title_a, int(predictions_dict['body']['predictions']['direction']['prediction']['seconds']))]
+
+            elif isinstance(predictions_dict['body']['predictions']['direction'], list) == True:
+
+                preds_provided = [(i['title'], int(j['seconds'])) for i in predictions_dict['body']['predictions']['direction'] for j in i['prediction']]
+
+                preds_provided.sort(key = lambda y: y[1])
+
+            now_time = datetime.now().strftime('%m/%d/%Y, %H:%M:%S')
+
+            accordion_items = []
+
+            counter = 0
+            max_len = len(preds_provided)
+
+            while counter < 3:
+                
+                accordion_items.append(dbc.AccordionItem(
+                    id=f'prediction-{counter}', children = [
+                        html.P(f'This is Prediction {counter}')
+                    ], title = f'{preds_provided[counter][0]} - {preds_provided[counter][1]} seconds'
+                ))
+
+                counter += 1
+
+                if counter == max_len:
+
+                    break
+
+            div_children = [html.H6(f'Predictions last updated: {now_time}'), dbc.Accordion(id = 'predictions-accordion', children = accordion_items, flush = True)]
+
+            return div_children
+
+        else:
+
+            now_time = datetime.now().strftime('%m/%d/%Y, %H:%M:%S')
+
+            return [[dbc.Accordion(id = 'predictions-accordion', children = [now_time], flush = True)]]
+
+    else:
+        return dash.no_update
 
 
 
