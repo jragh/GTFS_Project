@@ -57,7 +57,7 @@ external_stylesheets = ['dbc.themes.FLATLY']
 app = dash.Dash(__name__, external_stylesheets=['https://cdn.jsdelivr.net/npm/bootswatch@5.1.3/dist/flatly/bootstrap.min.css'])
 
 app.layout = dbc.Container(fluid = True, children = [
-    dbc.Row(id = 'main-row', class_name="g-0", style = {"height" : "100vh"}, children = [
+    dbc.Row(id = 'main-row', class_name="g-0", style = {"height" : "100%"}, children = [
         dbc.Col(id = 'side-bar', align = "start", width = 3, style = {"background-color": "#f8f9fa", "height": "100%", "padding": "2rem"}, children = [
             html.Div([html.H3('Test Title for R&D App')]),
             html.Br(),
@@ -72,8 +72,29 @@ app.layout = dbc.Container(fluid = True, children = [
             html.Div(id = 'stop-selection-div', children = []),
             html.Div(id = 'parent-stop-predictions-div', children = [html.Div(id='stop-predictions-div', children = [])])
             ]),
-        dbc.Col(id = 'map-area', align = "end", width = 9, style ={"height": "100vh"}, children = [
-            html.Div(id = 'map-div', style ={"height": "100%"}, children = [dcc.Graph(style = {'height': "100vh"}, id='main-graph')])
+        dbc.Col(id = 'map-area', align = "end", width = 9, style ={"height": "100%"}, children = [
+            dbc.Row(id='row-1', style = {'height': "15%"}, children =[
+                # Code needs to go here to introduce the div and cards for displaying Number of Busses, Service alerts, etc # 
+                dbc.CardGroup(id = 'info-cards-group', children = [
+                    dbc.Card(id = 'current-vehicles-card', color = 'success', children = [
+                        dbc.CardBody([
+                            html.H5('Current TTC Vehicles', style = {'color':'white'}),
+                            html.H3('200 Vehicles', style = {'color':'white'}),
+                            html.P('Displaying the current number of TTC vehicles', style = {'color':'white'})
+                    ])]),
+                    dbc.Card(id = 'current-alerts-card', color = 'warning', children = [
+                        dbc.CardBody([
+                            html.H5('Current TTC Alerts', style = {'color':'white'}),
+                            html.H3('17 Alerts', style = {'color':'white'}),
+                            dbc.CardLink('Click here to see further details on current alerts', style = {'color':'white'})
+                        ])
+                    ]),
+                    dbc.Card(id = 'historical-trends-card')
+                ])
+            ], class_name="g-0"),
+            dbc.Row(id ='map-row', style = {'height': "85%"}, children =[
+                html.Div(id = 'map-div', style ={"height": "100%"}, children = [dcc.Graph(style = {'height': "80vh"}, id='main-graph')])
+                ], class_name="g-0")
             ])
         ]), 
     ], style = {'height': "100vh"}, class_name="g-0")
@@ -98,8 +119,8 @@ def update_graph(n_clicks, n_clicks2, state1):
 
 def map_reset(n_clicks):
 
-    layout_int = go.Layout(title = 'Test Scattermapbox Map', mapbox_style="carto-positron", hovermode='closest', showlegend = True,
-    mapbox = {'center': {'lat': 43.6532, 'lon': -79.3832}, 'zoom': 12, 'bearing' : 344})
+    layout_int = go.Layout(mapbox_style="carto-positron", hovermode='closest', showlegend = True, autosize=True, margin = {'r': 0, 't': 0, 'b': 0, 'l': 0 },
+    legend = {'orientation': 'h', 'xanchor': 'left', 'yanchor': 'bottom', "y": 1.02, "x": 0}, mapbox = {'center': {'lat': 43.6532, 'lon': -79.3832}, 'zoom': 12, 'bearing' : 344})
 
     updated_epoch = int(time.time())
 
@@ -124,7 +145,7 @@ def map_reset(n_clicks):
 
     ## Callback 
 
-    return [[dcc.Graph(id='main-graph', style = {'height': "100vh"}, figure = go.Figure(data = [data_int], layout = layout_int))], ['Feel free to select a TTC Bus Route to view line details at a closer glance. Or just view all the currently running vehicles on the network!'], "0", [], [html.Div(id='stop-predictions-div', children = [])]]
+    return [[dcc.Graph(id='main-graph', style = {'height': "100%"}, figure = go.Figure(data = [data_int], layout = layout_int))], ['Feel free to select a TTC Bus Route to view line details at a closer glance. Or just view all the currently running vehicles on the network!'], "0", [], [html.Div(id='stop-predictions-div', children = [])]]
 
 
 def line_selection_zoom(value_line):
@@ -197,8 +218,8 @@ def line_selection_zoom(value_line):
         max_bound = max(abs(maxlat-minlat), abs(maxlon-minlon)) * 111
         zoom = 14 - np.log(max_bound)
 
-        layout_int = go.Layout(title = 'Test Scattermapbox Map', mapbox_style="carto-positron", hovermode='closest', showlegend = True, uirevision = True,
-        mapbox = {'center': center, 'zoom': zoom, 'bearing' : 344})
+        layout_int = go.Layout(mapbox_style="carto-positron", hovermode='closest', showlegend = True, uirevision = True, autosize=True, margin = {'r': 0, 't': 0, 'b': 0, 'l': 0 },
+        legend = {'orientation': 'h', 'xanchor': 'left', 'yanchor': 'bottom', "y": 1.02, "x": 0}, mapbox = {'center': center, 'zoom': zoom, 'bearing' : 344})
 
         ## Stop Selection Layout
         stops_break = html.Br()
@@ -213,7 +234,7 @@ def line_selection_zoom(value_line):
         stops_children = [stops_break, stops_title, stops_dropdown,stops_desc, predictions_store, prediction_stop_id_store, predictions_interval, html.Br(), predictions_button_activate]
 
 
-        return [[dcc.Graph(id='main-graph', style = {'height': "100vh"}, figure = go.Figure(data = [stops_smb, vehicle_smb], layout = layout_int))], [f"You have selected line {value_route}!"], value_route, stops_children, [html.Div(id='stop-predictions-div', children = [])]]
+        return [[dcc.Graph(id='main-graph', style = {'height': "100%"}, figure = go.Figure(data = [stops_smb, vehicle_smb], layout = layout_int))], [f"You have selected line {value_route}!"], value_route, stops_children, [html.Div(id='stop-predictions-div', children = [])]]
 
     else:
         return dash.no_update
@@ -397,8 +418,8 @@ def update_metrics(n, reset_store):
         vlDF['routeTitle'] = vlDF['dirTag'].map(bus_direction_tag_title_dict)
 
 
-        layout_int = go.Layout(title = 'Test Scattermapbox Map', mapbox_style="carto-positron", hovermode='closest', uirevision = True, showlegend = True,
-        mapbox = {'center': {'lat': 43.6532, 'lon': -79.3832}, 'zoom': 12, 'bearing' : 344})
+        layout_int = go.Layout(mapbox_style="carto-positron", hovermode='closest', uirevision = True, showlegend = True, autosize=True, margin = {'r': 0, 't': 0, 'b': 0, 'l': 0 },
+        legend = {'orientation': 'h', 'xanchor': 'left', 'yanchor': 'bottom', "y": 1.02, "x": 0}, mapbox = {'center': {'lat': 43.6532, 'lon': -79.3832}, 'zoom': 12, 'bearing' : 344})
 
 
         data_int = go.Scattermapbox(uirevision = True, lat = vlDF['lat'], lon = vlDF['lon'], mode = 'markers', 
@@ -472,8 +493,8 @@ def update_metrics(n, reset_store):
         max_bound = max(abs(maxlat-minlat), abs(maxlon-minlon)) * 111
         zoom = 14 - np.log(max_bound)
 
-        layout_int = go.Layout(title = 'Test Scattermapbox Map', mapbox_style="carto-positron", hovermode='closest', showlegend = True, uirevision = True,
-        mapbox = {'center': center, 'zoom': zoom, 'bearing' : 344})
+        layout_int = go.Layout(mapbox_style="carto-positron", hovermode='closest', showlegend = True, uirevision = True, autosize=True, margin = {'r': 0, 't': 0, 'b': 0, 'l': 0 },
+        legend = {'orientation': 'h', 'xanchor': 'left', 'yanchor': 'bottom', "y": 1.02, "x": 0}, mapbox = {'center': center, 'zoom': zoom, 'bearing' : 344})
 
         return go.Figure(data = [stops_smb, vehicle_smb], layout = layout_int)
 
