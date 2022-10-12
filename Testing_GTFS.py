@@ -86,18 +86,24 @@ app.layout = dbc.Container(fluid = True, children = [
                         dbc.CardBody([
                             html.H5('Current TTC Alerts', style = {'color':'white'}),
                             html.H3('17 Alerts', style = {'color':'white'}),
-                            dbc.CardLink('Click here to see further details on current alerts', style = {'color':'white'})
+                            dbc.Button('Current Alerts Details', color = 'primary', outline=True)
                         ])
                     ]),
-                    dbc.Card(id = 'historical-trends-card')
+                    dbc.Card(id = 'historical-trends-card', color = 'info', children = [
+                        dbc.CardBody([
+                            html.H5('Historical TTC Performance Trends', style = {'color': 'white'}),
+                            html.P('Click the link below to view historical TTC performace trends for previous years', style = {'color': 'white'}),
+                            dbc.CardLink('Link to Historical TTC Trends', href = '#', style = {'color': 'white'})
+                        ])
+                    ])
                 ])
             ], class_name="g-0"),
             dbc.Row(id ='map-row', style = {'height': "85%"}, children =[
-                html.Div(id = 'map-div', style ={"height": "100%"}, children = [dcc.Graph(style = {'height': "80vh"}, id='main-graph')])
+                html.Div(id = 'map-div', style ={"height": "100%"}, children = [dcc.Graph(style = {'height': "84vh"}, id='main-graph')])
                 ], class_name="g-0")
             ])
         ]), 
-    ], style = {'height': "100vh"}, class_name="g-0")
+    ], style = {'height': "100%"}, class_name="g-0")
 
 ## Try to replace the div as opposed to just the map component
 ## This section of code resets the div when the reset button is clicked
@@ -107,7 +113,7 @@ def dropdown_menu_reset(n_clicks):
         return [""]
 
 
-@app.callback([Output('map-div', 'children'), Output('description-paragraph', 'children'), Output('reset-store', 'data'), Output('stop-selection-div', 'children'), Output('parent-stop-predictions-div', 'children')],Input('reset-map-button', 'n_clicks'), Input('select-line-button', 'n_clicks'), State('line-selection', 'value'), prevent_initial_call=True)
+@app.callback([Output('map-div', 'children'), Output('description-paragraph', 'children'), Output('reset-store', 'data'), Output('stop-selection-div', 'children'), Output('parent-stop-predictions-div', 'children'), Output('current-vehicles-card', 'children')],Input('reset-map-button', 'n_clicks'), Input('select-line-button', 'n_clicks'), State('line-selection', 'value'), prevent_initial_call=True)
 def update_graph(n_clicks, n_clicks2, state1):
     triggered_id = ctx.triggered_id
     print(triggered_id)
@@ -138,14 +144,24 @@ def map_reset(n_clicks):
 
     vlDF['routeTitle'] = vlDF['dirTag'].map(bus_direction_tag_title_dict)
 
+    len_df = len(vlDF.index)
+
+    ## This section is to generate the data for the Vehicles on the map ##
+
     data_int = go.Scattermapbox(uirevision = True, lat = vlDF['lat'], lon = vlDF['lon'], mode = 'markers', 
     marker = go.scattermapbox.Marker(size = 8, opacity = 0.75, color = 'orange'), name='TTC Vehicle Locations',
     customdata=np.stack((vlDF['routeTag'], vlDF['routeTitle'], vlDF['speedKmHr']), axis=-1),
     hovertemplate = '<b>Main Route: </b>%{customdata[0]}' + '<br><b>Route Direction:</b> %{customdata[1]}' + '<br><b>Current Speed: </b> %{customdata[2]} km/h')
 
+    ## This section is to return the information for Active Vehicles Banner Card ##
+
+    active_vehicles_sentence = f'{len_df} Vehicles'
+
+    av_card_return = [dbc.CardBody([html.H5('Current TTC Vehicles', style = {'color':'white'}), html.H3(active_vehicles_sentence, style = {'color':'white'}), html.P('Displaying the current number of TTC vehicles', style = {'color':'white'})])]
+
     ## Callback 
 
-    return [[dcc.Graph(id='main-graph', style = {'height': "100%"}, figure = go.Figure(data = [data_int], layout = layout_int))], ['Feel free to select a TTC Bus Route to view line details at a closer glance. Or just view all the currently running vehicles on the network!'], "0", [], [html.Div(id='stop-predictions-div', children = [])]]
+    return [[dcc.Graph(id='main-graph', style = {'height': "84vh"}, figure = go.Figure(data = [data_int], layout = layout_int))], ['Feel free to select a TTC Bus Route to view line details at a closer glance. Or just view all the currently running vehicles on the network!'], "0", [], [html.Div(id='stop-predictions-div', children = [])], av_card_return]
 
 
 def line_selection_zoom(value_line):
@@ -204,6 +220,13 @@ def line_selection_zoom(value_line):
         customdata=np.stack((vlDF['routeTag'], vlDF['routeTitle'], vlDF['speedKmHr']), axis=-1),
         hovertemplate = '<b>Main Route: </b>%{customdata[0]}' + '<br><b>Route Direction:</b> %{customdata[1]}' + '<br><b>Current Speed: </b> %{customdata[2]} km/h')
 
+        ## This section is to return information for the active vehicles card ##
+        
+        len_df = len(vlDF.index)
+
+        active_vehicles_sentence = f'{len_df} Vehicles'
+
+        av_card_return = [dbc.CardBody([html.H5(f'Current TTC Vehicles: Line {value_route}', style = {'color':'white'}), html.H3(active_vehicles_sentence, style = {'color':'white'}), html.P(f'Displaying the current number of TTC vehicles on line {value_route}', style = {'color':'white'})])]
 
 
         # Layout generation with auto zoom depending on the stops
@@ -234,7 +257,7 @@ def line_selection_zoom(value_line):
         stops_children = [stops_break, stops_title, stops_dropdown,stops_desc, predictions_store, prediction_stop_id_store, predictions_interval, html.Br(), predictions_button_activate]
 
 
-        return [[dcc.Graph(id='main-graph', style = {'height': "100%"}, figure = go.Figure(data = [stops_smb, vehicle_smb], layout = layout_int))], [f"You have selected line {value_route}!"], value_route, stops_children, [html.Div(id='stop-predictions-div', children = [])]]
+        return [[dcc.Graph(id='main-graph', style = {'height': "84vh"}, figure = go.Figure(data = [stops_smb, vehicle_smb], layout = layout_int))], [f"You have selected line {value_route}!"], value_route, stops_children, [html.Div(id='stop-predictions-div', children = [])], av_card_return]
 
     else:
         return dash.no_update
@@ -397,7 +420,7 @@ def predictions_interval_update(n_intervals, reset_store, predictions_store):
 
 ## This callback does the periodic refresh for the vehicle locations
 ## This callback waits 15 seconds, and returns the main - graph figure
-@app.callback(Output('main-graph', 'figure'),
+@app.callback([Output('main-graph', 'figure'), Output('info-cards-group', 'children')],
         [Input('timing-component', 'n_intervals'),Input('reset-store', 'data')])
 def update_metrics(n, reset_store):
     if reset_store == "0":
@@ -427,8 +450,39 @@ def update_metrics(n, reset_store):
         customdata=np.stack((vlDF['routeTag'], vlDF['routeTitle'], vlDF['speedKmHr']), axis=-1),
         hovertemplate = '<b>Main Route: </b>%{customdata[0]}' + '<br><b>Route Direction:</b> %{customdata[1]}' + '<br><b>Current Speed: </b> %{customdata[2]} km/h')
 
+        ## Section to return Card Information ## 
+
+        len_vlDF = len(vlDF.index)
+
+        active_vehicles_sentence = f'{len_vlDF} Vehicles'
+
+        cardgroup_children = [
+                    dbc.Card(id = 'current-vehicles-card', color = 'success', children = [
+                        dbc.CardBody([
+                            html.H5('Current TTC Vehicles', style = {'color':'white'}),
+                            html.H3(active_vehicles_sentence, style = {'color':'white'}),
+                            html.P('Displaying the current number of TTC vehicles', style = {'color':'white'})
+                    ])]),
+                    dbc.Card(id = 'current-alerts-card', color = 'warning', children = [
+                        dbc.CardBody([
+                            html.H5('Current TTC Alerts', style = {'color':'white'}),
+                            html.H3('17 Alerts', style = {'color':'white'}),
+                            dbc.Button('Current Alerts Details', color = 'primary', outline=True)
+                        ])
+                    ]),
+                    dbc.Card(id = 'historical-trends-card', color = 'info', children = [
+                        dbc.CardBody([
+                            html.H5('Historical TTC Performance Trends', style = {'color': 'white'}),
+                            html.P('Click the link below to view historical TTC performace trends for previous years', style = {'color': 'white'}),
+                            dbc.CardLink('Link to Historical TTC Trends', href = '#', style = {'color': 'white'})
+                        ])
+                    ])
+                ]
         
-        return go.Figure(data = [data_int], layout = layout_int)
+        ## Card Information Section End ##
+
+        
+        return [go.Figure(data = [data_int], layout = layout_int), cardgroup_children]
     
     else:
         updated_epoch = int(time.time())
@@ -496,7 +550,37 @@ def update_metrics(n, reset_store):
         layout_int = go.Layout(mapbox_style="carto-positron", hovermode='closest', showlegend = True, uirevision = True, autosize=True, margin = {'r': 0, 't': 0, 'b': 0, 'l': 0 },
         legend = {'orientation': 'h', 'xanchor': 'left', 'yanchor': 'bottom', "y": 1.02, "x": 0}, mapbox = {'center': center, 'zoom': zoom, 'bearing' : 344})
 
-        return go.Figure(data = [stops_smb, vehicle_smb], layout = layout_int)
+
+        ## Section to return Card Information ## 
+
+        len_vlDF = len(vlDF.index)
+
+        active_vehicles_sentence = f'{len_vlDF} Vehicles'
+
+        cardgroup_children = [
+                    dbc.Card(id = 'current-vehicles-card', color = 'success', children = [
+                        dbc.CardBody([
+                            html.H5(f'Current TTC Vehicles: Line {reset_store}', style = {'color':'white'}),
+                            html.H3(active_vehicles_sentence, style = {'color':'white'}),
+                            html.P(f'Displaying the current number of TTC vehicles on line {reset_store}', style = {'color':'white'})
+                    ])]),
+                    dbc.Card(id = 'current-alerts-card', color = 'warning', children = [
+                        dbc.CardBody([
+                            html.H5('Current TTC Alerts', style = {'color':'white'}),
+                            html.H3('17 Alerts', style = {'color':'white'}),
+                            dbc.Button('Current Alerts Details', color = 'primary', outline=True)
+                        ])
+                    ]),
+                    dbc.Card(id = 'historical-trends-card', color = 'info', children = [
+                        dbc.CardBody([
+                            html.H5('Historical TTC Performance Trends', style = {'color': 'white'}),
+                            html.P('Click the link below to view historical TTC performace trends for previous years', style = {'color': 'white'}),
+                            dbc.CardLink('Link to Historical TTC Trends', href = '#', style = {'color': 'white'})
+                        ])
+                    ])
+                ] 
+
+        return [go.Figure(data = [stops_smb, vehicle_smb], layout = layout_int), cardgroup_children]
 
 
 
