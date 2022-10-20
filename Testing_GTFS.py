@@ -89,7 +89,7 @@ def sa_initial_pull():
 
     # Loop through result return list to create accordion items
     
-    accordion_items = [html.H3('Current Service Delays')]
+    accordion_items = []
     
     if len(result_return) > 0:
         for lst in result_return:
@@ -121,7 +121,7 @@ def sa_initial_pull():
                     html.P(f'{str(lst[0])}')
                 ], title = f'{string_test}'))
 
-    return [service_alerts_num, dbc.CardBody([html.H5('Current TTC Alerts', style = {'color':'white'}),html.H3(f'{service_alerts_num} Alerts', style = {'color':'white'}),dbc.Button('Current Alerts Details', color = 'primary', outline=True)]), html.Div(id = 'alerts-offcanvas-div', children = [dbc.Offcanvas(id='service-alerts-offcanvas', is_open = True, placement = 'end', children = [dbc.Accordion(children=accordion_items)])])]
+    return [service_alerts_num, dbc.CardBody([html.H5('Current TTC Alerts', style = {'color':'white'}),html.H3(f'{service_alerts_num} Alerts', style = {'color':'white'}),dbc.Button(id='service-alerts-toggle', children='Current Alerts Details', color = 'primary', outline=True)]), html.Div(id = 'alerts-offcanvas-div', children = [dbc.Offcanvas(id='service-alerts-offcanvas', is_open = False, placement = 'end', title = 'Current Service Alerts', children = [dbc.Accordion(children=accordion_items)])])]
 
 sa_res = sa_initial_pull()
 
@@ -557,7 +557,7 @@ def update_metrics(n, reset_store, sas):
                         dbc.CardBody([
                             html.H5('Current TTC Alerts', style = {'color':'white'}),
                             html.H3(f'{service_alerts_num} Alerts', style = {'color':'white'}),
-                            dbc.Button('Current Alerts Details', color = 'primary', outline=True)
+                            dbc.Button(id = 'service-alerts-toggle', children='Current Alerts Details', color = 'primary', outline=True)
                         ])
                     ]),
                     dbc.Card(id = 'historical-trends-card', color = 'info', children = [
@@ -660,7 +660,7 @@ def update_metrics(n, reset_store, sas):
                         dbc.CardBody([
                             html.H5('Current TTC Alerts', style = {'color':'white'}),
                             html.H3(f'{service_alerts_num} Alerts', style = {'color':'white'}),
-                            dbc.Button('Current Alerts Details', color = 'primary', outline=True)
+                            dbc.Button(id = 'service-alerts-toggle', children='Current Alerts Details', color = 'primary', outline=True)
                         ])
                     ]),
                     dbc.Card(id = 'historical-trends-card', color = 'info', children = [
@@ -712,7 +712,7 @@ def dynamic_service_alerts():
 
     # Loop through result return list to create accordion items
     
-    accordion_items = [html.H3('Current Service Delays')]
+    accordion_items = []
     
     if len(result_return) > 0:
         for lst in result_return:
@@ -733,9 +733,14 @@ def dynamic_service_alerts():
                     html.P(f'{str(lst[0])}')
                 ]))
 
-    return [service_alerts_num, [dbc.CardBody([html.H5('Current TTC Alerts', style = {'color':'white'}), html.H3(f'{service_alerts_num} Alerts', style = {'color':'white'}), dbc.Button('Current Alerts Details', color = 'primary', outline=True)])], html.Div(id = 'alerts-offcanvas-div', children = [dbc.Offcanvas(id='service-alerts-offcanvas', children = [])])]
+    return [service_alerts_num, [dbc.CardBody([html.H5('Current TTC Alerts', style = {'color':'white'}), html.H3(f'{service_alerts_num} Alerts', style = {'color':'white'}), dbc.Button(id = 'service-alerts-toggle', children='Current Alerts Details', color = 'primary', outline=True)])], html.Div(id = 'alerts-offcanvas-div', children = [dbc.Offcanvas(id='service-alerts-offcanvas', title = 'Current Service Delays', placement = 'end', is_open = False, children = [dbc.Accordion(children = accordion_items)])])]
 
 
+@app.callback(Output("service-alerts-offcanvas", "is_open"), Input("service-alerts-toggle", "n_clicks"), State("service-alerts-offcanvas", "is_open"))
+def toggle_offcanvas(n1, is_open):
+    if n1:
+        return not is_open
+    return is_open
 
 
 if __name__ == '__main__':
