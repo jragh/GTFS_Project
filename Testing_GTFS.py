@@ -19,6 +19,11 @@ import json
 
 from datetime import datetime
 
+
+from selenium import webdriver
+from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.common.by import By
+
 epoch_time = int(time.time())
 
 # "https://codepen.io/chriddyp/pen/bWLwgP.css", 
@@ -45,6 +50,81 @@ routeListing = xmltodict.parse(routeListingStringRequest.content, attr_prefix = 
 routeListingDF = pd.DataFrame.from_dict(routeListing['body']['route'])
 print(routeListingDF)
 
+## Initial Service Alerts Pull ##
+
+def sa_initial_pull():
+
+    url_service_alerts = 'https://www.ttc.ca/service-alerts'
+
+    options = Options()
+    options.headless = True
+    driver = webdriver.Firefox(options=options, executable_path=r'C:\\Users\\Bushman\\geckodriver.exe')
+    driver.get(url_service_alerts)
+
+    results = driver.find_elements(By.CLASS_NAME, "ServiceAlerts_ListAlerts__2BUmu")
+
+    results_list_split = results[0].text.split('\n')
+
+    ## Function loops through above list to split line and route number into separate stuff
+
+    result_return = []
+    result_inner_list = []
+    counter = 0
+
+    for i in results_list_split:
+        print(i)
+        print(i[0].isdigit())
+        if i[0].isdigit() == True:
+            counter = 1
+            result_inner_list.append(i)
+
+        elif i[0].isdigit() == False:
+            counter = 0
+            result_inner_list.append(i)
+            result_return.append(result_inner_list)
+        
+            result_inner_list = []
+
+    service_alerts_num = len(result_return)
+
+    # Loop through result return list to create accordion items
+    
+    accordion_items = [html.H3('Current Service Delays')]
+    
+    if len(result_return) > 0:
+        for lst in result_return:
+
+            if len(lst) == 2: 
+
+                accordion_items.append(dbc.AccordionItem(children = [
+                    dbc.Row(children=[
+                        dbc.Col(width = '20%', children=[html.H5(f'{str(lst[0])}')]),
+                        dbc.Col(width = '80%', children=[html.P(f'{str(lst[1])}')])
+                        ])
+                    ], title = f'{lst[0]}')
+                )
+
+            elif len(lst) == 1:
+
+                string_test = ''
+
+                if str(lst[0])[0:4] == 'Line':
+
+                    string_test = str(lst[0])[0:6]
+                
+                else:
+
+                    string_test = 'Additional Alert, See Below'
+
+
+                accordion_items.append(dbc.AccordionItem(children = [
+                    html.P(f'{str(lst[0])}')
+                ], title = f'{string_test}'))
+
+    return [service_alerts_num, dbc.CardBody([html.H5('Current TTC Alerts', style = {'color':'white'}),html.H3(f'{service_alerts_num} Alerts', style = {'color':'white'}),dbc.Button('Current Alerts Details', color = 'primary', outline=True)]), html.Div(id = 'alerts-offcanvas-div', children = [dbc.Offcanvas(id='service-alerts-offcanvas', is_open = True, placement = 'end', children = [dbc.Accordion(children=accordion_items)])])]
+
+sa_res = sa_initial_pull()
+
 ## Loading in the Route Config information for the routes
 ## This will need to be handled better in the future, for daily / weekly updating of the file
 ## Lookup anywhere in the file that is loading in the bus realtime locations, use a left join on the tag
@@ -57,7 +137,7 @@ external_stylesheets = ['dbc.themes.FLATLY']
 app = dash.Dash(__name__, external_stylesheets=['https://cdn.jsdelivr.net/npm/bootswatch@5.1.3/dist/flatly/bootstrap.min.css'])
 
 app.layout = dbc.Container(fluid = True, children = [
-    dbc.Row(id = 'main-row', class_name="g-0", style = {"height" : "100%"}, children = [
+    dbc.Row(id = 'main-row', class_name="g-0", style = {"height" : "100%", "background-color": "#f8f9fa"}, children = [
         dbc.Col(id = 'side-bar', align = "start", width = 3, style = {"background-color": "#f8f9fa", "height": "100%", "padding": "2rem"}, children = [
             html.Div([html.H3('Test Title for R&D App')]),
             html.Br(),
@@ -75,6 +155,8 @@ app.layout = dbc.Container(fluid = True, children = [
         dbc.Col(id = 'map-area', align = "end", width = 9, style ={"height": "100%"}, children = [
             dbc.Row(id='row-1', style = {'height': "15%"}, children =[
                 # Code needs to go here to introduce the div and cards for displaying Number of Busses, Service alerts, etc # 
+                dcc.Interval(id='service-alerts-timer', interval = 600000),
+                dcc.Store(id='service-alerts-store', storage_type = 'memory', data = sa_res[0]),
                 dbc.CardGroup(id = 'info-cards-group', children = [
                     dbc.Card(id = 'current-vehicles-card', color = 'success', children = [
                         dbc.CardBody([
@@ -82,13 +164,18 @@ app.layout = dbc.Container(fluid = True, children = [
                             html.H3('200 Vehicles', style = {'color':'white'}),
                             html.P('Displaying the current number of TTC vehicles', style = {'color':'white'})
                     ])]),
-                    dbc.Card(id = 'current-alerts-card', color = 'warning', children = [
-                        dbc.CardBody([
-                            html.H5('Current TTC Alerts', style = {'color':'white'}),
-                            html.H3('17 Alerts', style = {'color':'white'}),
-                            dbc.Button('Current Alerts Details', color = 'primary', outline=True)
-                        ])
-                    ]),
+                    # dbc.Card(id = 'current-alerts-card', color = 'warning', children = [
+                    #     dbc.CardBody([
+                    #         html.H5('Current TTC Alerts', style = {'color':'white'}),
+                    #         html.H3('17 Alerts', style = {'color':'white'}),
+                    #         dbc.Button('Current Alerts Details', color = 'primary', outline=True),
+                    #         html.Div(id = 'alerts-offcanvas-div', children = [
+                    #             dbc.Offcanvas(id='service-alerts-offcanvas', children = [
+                    #             ])
+                    #         ])
+                    #     ])
+                    # ]),
+                    dbc.Card(id = 'current-alerts-card', color = 'warning', children = [sa_res[1]]),
                     dbc.Card(id = 'historical-trends-card', color = 'info', children = [
                         dbc.CardBody([
                             html.H5('Historical TTC Performance Trends', style = {'color': 'white'}),
@@ -96,7 +183,8 @@ app.layout = dbc.Container(fluid = True, children = [
                             dbc.CardLink('Link to Historical TTC Trends', href = '#', style = {'color': 'white'})
                         ])
                     ])
-                ])
+                ]),
+                sa_res[2],
             ], class_name="g-0"),
             dbc.Row(id ='map-row', style = {'height': "85%"}, children =[
                 html.Div(id = 'map-div', style ={"height": "100%"}, children = [dcc.Graph(style = {'height': "84vh"}, id='main-graph')])
@@ -421,8 +509,8 @@ def predictions_interval_update(n_intervals, reset_store, predictions_store):
 ## This callback does the periodic refresh for the vehicle locations
 ## This callback waits 15 seconds, and returns the main - graph figure
 @app.callback([Output('main-graph', 'figure'), Output('info-cards-group', 'children')],
-        [Input('timing-component', 'n_intervals'),Input('reset-store', 'data')])
-def update_metrics(n, reset_store):
+        [Input('timing-component', 'n_intervals'),Input('reset-store', 'data'), State('service-alerts-store', 'data')])
+def update_metrics(n, reset_store, sas):
     if reset_store == "0":
         updated_epoch = int(time.time())
 
@@ -456,6 +544,8 @@ def update_metrics(n, reset_store):
 
         active_vehicles_sentence = f'{len_vlDF} Vehicles'
 
+        service_alerts_num = sas
+
         cardgroup_children = [
                     dbc.Card(id = 'current-vehicles-card', color = 'success', children = [
                         dbc.CardBody([
@@ -466,7 +556,7 @@ def update_metrics(n, reset_store):
                     dbc.Card(id = 'current-alerts-card', color = 'warning', children = [
                         dbc.CardBody([
                             html.H5('Current TTC Alerts', style = {'color':'white'}),
-                            html.H3('17 Alerts', style = {'color':'white'}),
+                            html.H3(f'{service_alerts_num} Alerts', style = {'color':'white'}),
                             dbc.Button('Current Alerts Details', color = 'primary', outline=True)
                         ])
                     ]),
@@ -557,6 +647,8 @@ def update_metrics(n, reset_store):
 
         active_vehicles_sentence = f'{len_vlDF} Vehicles'
 
+        service_alerts_num = sas
+
         cardgroup_children = [
                     dbc.Card(id = 'current-vehicles-card', color = 'success', children = [
                         dbc.CardBody([
@@ -567,7 +659,7 @@ def update_metrics(n, reset_store):
                     dbc.Card(id = 'current-alerts-card', color = 'warning', children = [
                         dbc.CardBody([
                             html.H5('Current TTC Alerts', style = {'color':'white'}),
-                            html.H3('17 Alerts', style = {'color':'white'}),
+                            html.H3(f'{service_alerts_num} Alerts', style = {'color':'white'}),
                             dbc.Button('Current Alerts Details', color = 'primary', outline=True)
                         ])
                     ]),
@@ -581,6 +673,68 @@ def update_metrics(n, reset_store):
                 ] 
 
         return [go.Figure(data = [stops_smb, vehicle_smb], layout = layout_int), cardgroup_children]
+
+
+@app.callback([Output('service-alerts-store', 'data'), Output('current-alerts-card', 'children'), Output('alerts-offcanvas-div', 'children')], Input('service_alerts_timer', 'n_intervals'))
+def dynamic_service_alerts():
+    url_service_alerts = 'https://www.ttc.ca/service-alerts'
+
+    options = Options()
+    options.headless = True
+    driver = webdriver.Firefox(options=options, executable_path=r'C:\\Users\\Bushman\\geckodriver.exe')
+    driver.get(url_service_alerts)
+
+    results = driver.find_elements(By.CLASS_NAME, "ServiceAlerts_ListAlerts__2BUmu")
+
+    results_list_split = results[0].text.split('\n')
+
+    ## Function loops through above list to split line and route number into separate stuff
+
+    result_return = []
+    result_inner_list = []
+    counter = 0
+
+    for i in results_list_split:
+        print(i)
+        print(i[0].isdigit())
+        if i[0].isdigit() == True:
+            counter = 1
+            result_inner_list.append(i)
+
+        elif i[0].isdigit() == False:
+            counter = 0
+            result_inner_list.append(i)
+            result_return.append(result_inner_list)
+        
+            result_inner_list = []
+
+    service_alerts_num = len(result_return)
+
+    # Loop through result return list to create accordion items
+    
+    accordion_items = [html.H3('Current Service Delays')]
+    
+    if len(result_return) > 0:
+        for lst in result_return:
+
+            if len(lst) == 2: 
+
+                accordion_items.append(dbc.AccordionItem(children = [
+                    dbc.Row(children=[
+                        dbc.Col(width = '20%', children=[html.H5(f'{str(lst[0])}')]),
+                        dbc.Col(width = '80%', children=[html.P(f'{str(lst[1])}')])
+                        ])
+                    ])
+                )
+
+            elif len(lst) == 1:
+
+                accordion_items.append(dbc.AccordionItem(children = [
+                    html.P(f'{str(lst[0])}')
+                ]))
+
+    return [service_alerts_num, [dbc.CardBody([html.H5('Current TTC Alerts', style = {'color':'white'}), html.H3(f'{service_alerts_num} Alerts', style = {'color':'white'}), dbc.Button('Current Alerts Details', color = 'primary', outline=True)])], html.Div(id = 'alerts-offcanvas-div', children = [dbc.Offcanvas(id='service-alerts-offcanvas', children = [])])]
+
 
 
 
