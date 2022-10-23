@@ -388,7 +388,19 @@ def provide_predictions(prediction_button_click, value_line, stop_value):
 
             elif isinstance(predictions_dict['body']['predictions']['direction'], list) == True:
 
-                preds_provided = [(i['title'], int(j['seconds'])) for i in predictions_dict['body']['predictions']['direction'] for j in i['prediction']]
+                preds_provided = []
+                
+                for i in predictions_dict['body']['predictions']['direction']:
+
+                    if isinstance(i['prediction'], list) == True:
+
+                        for j in i['prediction']:
+
+                            preds_provided.append((i['title'], int(j['seconds'])))
+                                     
+                    else:
+
+                        preds_provided.append((i['title'], int(i['prediction']['seconds'])))
 
                 preds_provided.sort(key = lambda y: y[1])
 
@@ -403,9 +415,21 @@ def provide_predictions(prediction_button_click, value_line, stop_value):
 
             while counter < 3:
 
+                mins = preds_provided[counter][1] // 60
+
+                leftover_secs = preds_provided[counter][1] % 60
+
+                message = ''
+
+                if mins > 0 :
+                    message = f'This vehicle is arriving in {mins} Minutes and {leftover_secs} Seconds'
+
+                else:
+                    message = f'This vehicle is arriving in {leftover_secs} Seconds'
+
                 accordion_items.append(dbc.AccordionItem(
                     id=f'prediction-{counter}', children = [
-                        html.P(f'This is Prediction {counter}')
+                        html.P(message)
                     ], title = f'{preds_provided[counter][0]} - {preds_provided[counter][1]} seconds'
                 ))
 
@@ -466,7 +490,19 @@ def predictions_interval_update(n_intervals, reset_store, predictions_store):
 
             elif isinstance(predictions_dict['body']['predictions']['direction'], list) == True:
 
-                preds_provided = [(i['title'], int(j['seconds'])) for i in predictions_dict['body']['predictions']['direction'] for j in i['prediction']]
+                preds_provided = []
+                
+                for i in predictions_dict['body']['predictions']['direction']:
+
+                    if isinstance(i['prediction'], list) == True:
+
+                        for j in i['prediction']:
+
+                            preds_provided.append((i['title'], int(j['seconds'])))
+                                     
+                    else:
+
+                        preds_provided.append((i['title'], int(i['prediction']['seconds'])))
 
                 preds_provided.sort(key = lambda y: y[1])
 
@@ -478,10 +514,22 @@ def predictions_interval_update(n_intervals, reset_store, predictions_store):
             max_len = len(preds_provided)
 
             while counter < 3:
+
+                mins = preds_provided[counter][1] // 60
+
+                leftover_secs = preds_provided[counter][1] % 60
+
+                message = ''
+
+                if mins > 0 :
+                    message = f'This vehicle is arriving in {mins} Minutes and {leftover_secs} Seconds'
+
+                else:
+                    message = f'This vehicle is arriving in {leftover_secs} Seconds'
                 
                 accordion_items.append(dbc.AccordionItem(
                     id=f'prediction-{counter}', children = [
-                        html.P(f'This is Prediction {counter}')
+                        html.P(message)
                     ], title = f'{preds_provided[counter][0]} - {preds_provided[counter][1]} seconds'
                 ))
 
