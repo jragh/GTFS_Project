@@ -19,10 +19,16 @@ import json
 
 from datetime import datetime
 
+import os
+
 
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.common.by import By
+
+# Importing python file that contains data visualizations
+from HistoricalDelay import generate_figs
+from RouteListRefresh import RouteRefresh
 
 epoch_time = int(time.time())
 
@@ -73,18 +79,33 @@ def sa_initial_pull():
 
     for i in results_list_split:
         print(i)
-        print(i[0].isdigit())
-        if i[0].isdigit() == True:
-            counter = 1
-            result_inner_list.append(i)
+        if len(i) > 0:
+            print(i[0].isdigit())
+            if i[0].isdigit() == True:
+                counter = 1
 
-        elif i[0].isdigit() == False:
-            counter = 0
-            result_inner_list.append(i)
-            result_return.append(result_inner_list)
-        
-            result_inner_list = []
+                if result_inner_list != []:
 
+                    if result_inner_list[0][0].isdigit() == True:
+
+                        result_return.append(result_inner_list)
+
+                        result_inner_list = []
+
+                result_inner_list.append(i)
+
+            elif i[0].isdigit() == False:
+                counter = 0
+                result_inner_list.append(i)
+                result_return.append(result_inner_list)
+            
+                result_inner_list = []
+
+
+    if result_inner_list != []:
+
+        result_return.append(result_inner_list)
+    
     service_alerts_num = len(result_return)
 
     # Loop through result return list to create accordion items
@@ -125,10 +146,13 @@ def sa_initial_pull():
 
 sa_res = sa_initial_pull()
 
+fig_arrays = generate_figs()
+
 ## Loading in the Route Config information for the routes
 ## This will need to be handled better in the future, for daily / weekly updating of the file
 ## Lookup anywhere in the file that is loading in the bus realtime locations, use a left join on the tag
-bus_direction_tag_title = pd.read_csv('C:\\Users\\Bushman\\Documents\\directionDFCSV.csv')
+
+bus_direction_tag_title = RouteRefresh().reset_index()
 
 bus_direction_tag_title_dict = {bus_direction_tag_title.loc[i, 'tag']: ' '.join(str(bus_direction_tag_title.loc[i, 'title']).split(' ')[3:]) for i, j in bus_direction_tag_title.iterrows()}
 external_stylesheets = ['dbc.themes.FLATLY'] 
@@ -178,13 +202,44 @@ app.layout = dbc.Container(fluid = True, children = [
                     dbc.Card(id = 'current-alerts-card', color = 'warning', children = [sa_res[1]]),
                     dbc.Card(id = 'historical-trends-card', color = 'info', children = [
                         dbc.CardBody([
-                            html.H5('Historical TTC Performance Trends', style = {'color': 'white'}),
-                            html.P('Click the link below to view historical TTC performace trends for previous years', style = {'color': 'white'}),
-                            dbc.CardLink('Link to Historical TTC Trends', href = '#', style = {'color': 'white'})
+                            html.H5('TTC Delay & Performance Data', style = {'color': 'white'}),
+                            html.P('Click the link below to view TTC delay and performance data visualizations', style = {'color': 'white'}),
+                            dbc.Button(id = 'analytics-button', color ='primary', children=['TTC Delay and Performance Analytics'])
                         ])
                     ])
                 ]),
                 sa_res[2],
+                html.Div(id='analytics-modal-div', children = [
+                                dbc.Modal(id = 'historical-trends-modal-fs', is_open = False, fullscreen=True, children = [
+                                    dbc.ModalHeader('TTC Delay Data: Quick Analytics'), 
+                                    dbc.ModalBody([
+                                        dbc.Row(style ={"height": "100%"}, children = [
+                                            dbc.Col(width=3, style = {"background-color": "#f8f9fa", "height": "100%", "padding": "2rem", "overflow-y": "scroll"}, children = [
+                                                html.H3('Visualizations'),
+                                                html.Br(),
+                                                html.H5('Select Visualization Below'),
+                                                dcc.Dropdown(id = 'viz-selection', placeholder = 'Select a Visualization to view...', searchable = True, options = ['#1 - Incidents By Time of Day', '#2 - Number of Delays By Duration and Time Of Day', '#3 - Area Plot: Delays By Time of Day Throughout the Year (Weekly)']), # Will need to make this read off a list instead of hard coding
+                                                html.Br(),
+                                                html.H5('Visualization Descriptions'),
+                                                dbc.Accordion(flush = True, id = 'viz-accordion', children = [
+                                                    dbc.AccordionItem(title='#1 - Incidents By Time of Day', children = [
+                                                        html.P('This graph displays the number of delay incidents that occured in each hour throughout the entire year. The graph aims to display the distribution of TTC delays throughout the day. Generally speaking, more delays occur during the afternoon and rush hour times, when more vehicles are running, while fewer delays occur during off-peak hours.')
+                                                    ]),
+                                                    dbc.AccordionItem(title = '#2 - Length of Delay By Time of Day', children = [
+                                                        html.P('This graph displays the count of delay occurences by their length, separated by the time of day. Time of Day is split into 4 sections - Overnight, Morning, Afternoon, and Evening.')
+                                                    ]),
+                                                    dbc.AccordionItem(title = '#3 - Area Plot: Delays By Time of Day Throughout the Year', children = [
+                                                        html.P('This graph displays the total minutes of delay for each week across the entire year, split by the Time of Day for the delay. Time of Day is split into 4 sections - Overnight, Morning, Afternoon, and Evening.')
+                                                    ])
+                                                ]),
+                                            ]),
+                                            dbc.Col(width=9, id = 'analytics-col', children = [
+                                                dcc.Graph(id = 'analytics-graph', style = {'height': '90%'}, figure = fig_arrays[0]),
+                                                dcc.Store(id = 'analytics-store', storage_type = 'memory', data = "0")])
+                                        ])
+                                    ])
+                                ])
+                            ])
             ], class_name="g-0"),
             dbc.Row(id ='map-row', style = {'height': "85%"}, children =[
                 html.Div(id = 'map-div', style ={"height": "100%"}, children = [dcc.Graph(style = {'height': "84vh"}, id='main-graph')])
@@ -610,9 +665,9 @@ def update_metrics(n, reset_store, sas):
                     ]),
                     dbc.Card(id = 'historical-trends-card', color = 'info', children = [
                         dbc.CardBody([
-                            html.H5('Historical TTC Performance Trends', style = {'color': 'white'}),
-                            html.P('Click the link below to view historical TTC performace trends for previous years', style = {'color': 'white'}),
-                            dbc.CardLink('Link to Historical TTC Trends', href = '#', style = {'color': 'white'})
+                            html.H5('TTC Delay & Performance Data', style = {'color': 'white'}),
+                            html.P('Click the link below to view TTC delay and performance data visualizations', style = {'color': 'white'}),
+                            dbc.Button(id = 'analytics-button', color ='primary', children=['TTC Delay and Performance Analytics'])
                         ])
                     ])
                 ]
@@ -713,9 +768,9 @@ def update_metrics(n, reset_store, sas):
                     ]),
                     dbc.Card(id = 'historical-trends-card', color = 'info', children = [
                         dbc.CardBody([
-                            html.H5('Historical TTC Performance Trends', style = {'color': 'white'}),
-                            html.P('Click the link below to view historical TTC performace trends for previous years', style = {'color': 'white'}),
-                            dbc.CardLink('Link to Historical TTC Trends', href = '#', style = {'color': 'white'})
+                            html.H5('TTC Delay & Performance Data', style = {'color': 'white'}),
+                            html.P('Click the link below to view TTC delay and performance data visualizations', style = {'color': 'white'}),
+                            dbc.Button(id = 'analytics-button', color ='primary', children=['TTC Delay and Performance Analytics'])
                         ])
                     ])
                 ] 
@@ -789,6 +844,26 @@ def toggle_offcanvas(n1, is_open):
     if n1:
         return not is_open
     return is_open
+
+
+@app.callback(Output("historical-trends-modal-fs", "is_open"), Input("analytics-button", "n_clicks"), State("historical-trends-modal-fs", "is_open"))
+def toggle_modaldisplay(n1, is_open):
+    if n1:
+        return not is_open
+    return is_open
+
+
+@app.callback([Output('analytics-graph', 'figure'), Output('analytics-store', 'data')], Input('viz-selection', 'value'))
+def update_analytics_graph(dd_value):
+    figures_array = fig_arrays
+
+    if dd_value == '' or dd_value is None:
+        return [figures_array[0], "0"]
+
+    else:
+        array_iter = int(dd_value.split(' - ')[0].replace('#', '')) - 1
+
+        return [figures_array[array_iter], dd_value.split(' - ')[0].replace('#', '')]
 
 
 if __name__ == '__main__':
