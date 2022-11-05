@@ -29,7 +29,7 @@ isort==5.4.2
 itsdangerous==2.0.1
 Jinja2==3.0.3
 kiwisolver==1.2.0
-lazy-object-proxy==1.7.1
+lazy-object-proxy==1.4.3
 MarkupSafe==2.1.1
 matplotlib==3.3.1
 mccabe==0.6.1
