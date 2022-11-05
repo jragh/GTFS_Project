@@ -1,1 +1,1 @@
-web: gunicorn Testing_GTFS:server
+web: gunicorn app:server
