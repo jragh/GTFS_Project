@@ -27,6 +27,10 @@ from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.common.by import By
 
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+
 # Importing python file that contains data visualizations
 from HistoricalDelay import generate_figs
 from RouteListRefresh import RouteRefresh
@@ -58,25 +62,37 @@ routeListingDF = pd.DataFrame.from_dict(routeListing['body']['route'])
 print(routeListingDF)
 
 ## Initial Service Alerts Pull ##
-def load_driver():
-	options = webdriver.FirefoxOptions()
+# def load_driver_firefox():
+# 	options = webdriver.FirefoxOptions()
 	
-	# enable trace level for debugging 
-	options.log.level = "trace"
+# 	# enable trace level for debugging 
+# 	options.log.level = "trace"
 
-	options.add_argument("-remote-debugging-port=9224")
-	options.add_argument("-headless")
-	options.add_argument("-disable-gpu")
-	options.add_argument("-no-sandbox")
+# 	options.add_argument("-remote-debugging-port=9224")
+# 	options.add_argument("-headless")
+# 	options.add_argument("-disable-gpu")
+# 	options.add_argument("-no-sandbox")
 
-	binary = FirefoxBinary(os.environ.get('FIREFOX_BIN'))
+# 	binary = FirefoxBinary(os.environ.get('FIREFOX_BIN'))
 
-	firefox_driver = webdriver.Firefox(
-		firefox_binary=binary,
-		executable_path=os.environ.get('GECKODRIVER_PATH'),
-		options=options)
+# 	firefox_driver = webdriver.Firefox(
+# 		firefox_binary=binary,
+# 		executable_path=os.environ.get('GECKODRIVER_PATH'),
+# 		options=options)
 
-	return firefox_driver
+# 	return firefox_driver
+
+def load_driver_chrome():
+    options = Options()
+    options.binary_location = os.environ.get("GOOGLE_CHROME_BIN")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--headless")
+    options.add_argument("start-maximized")
+    
+
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+    return driver
 
 
 def sa_initial_pull():
@@ -87,7 +103,7 @@ def sa_initial_pull():
     # options.headless = True
     # driver = webdriver.Firefox(options=options, executable_path=r'C:\\Users\\Bushman\\geckodriver.exe')
 
-    driver = load_driver()
+    driver = load_driver_chrome()
     driver.get(url_service_alerts)
 
     results = driver.find_elements(By.CLASS_NAME, "ServiceAlerts_ListAlerts__2BUmu")
@@ -809,7 +825,7 @@ def dynamic_service_alerts():
     # options = Options()
     # options.headless = True
     # driver = webdriver.Firefox(options=options, executable_path=r'C:\\Users\\Bushman\\geckodriver.exe')
-    driver = load_driver()
+    driver = load_driver_chrome()
     driver.get(url_service_alerts)
 
     results = driver.find_elements(By.CLASS_NAME, "ServiceAlerts_ListAlerts__2BUmu")
