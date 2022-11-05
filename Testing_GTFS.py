@@ -89,6 +89,7 @@ def load_driver_chrome():
     options.add_argument("--disable-gpu")
     options.add_argument("--headless")
     options.add_argument("start-maximized")
+    options.add_argument("disable-dev-shm-usage")
     
 
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
