@@ -200,6 +200,8 @@ external_stylesheets = ['dbc.themes.FLATLY']
 ## Need to specify the stylesheet by the URL, in the future will store the CSS as a file on a cloud system or something
 app = dash.Dash(__name__, external_stylesheets=['https://cdn.jsdelivr.net/npm/bootswatch@5.1.3/dist/flatly/bootstrap.min.css'])
 
+server = app.server
+
 app.layout = dbc.Container(fluid = True, children = [
     dbc.Row(id = 'main-row', class_name="g-0", style = {"height" : "100%", "background-color": "#f8f9fa"}, children = [
         dbc.Col(id = 'side-bar', align = "start", width = 3, style = {"background-color": "#f8f9fa", "height": "100%", "padding": "2rem"}, children = [
