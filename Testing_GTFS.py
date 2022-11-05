@@ -21,8 +21,9 @@ from datetime import datetime
 
 import os
 
-
 from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.common.by import By
 
@@ -57,14 +58,36 @@ routeListingDF = pd.DataFrame.from_dict(routeListing['body']['route'])
 print(routeListingDF)
 
 ## Initial Service Alerts Pull ##
+def load_driver():
+	options = webdriver.FirefoxOptions()
+	
+	# enable trace level for debugging 
+	options.log.level = "trace"
+
+	options.add_argument("-remote-debugging-port=9224")
+	options.add_argument("-headless")
+	options.add_argument("-disable-gpu")
+	options.add_argument("-no-sandbox")
+
+	binary = FirefoxBinary(os.environ.get('FIREFOX_BIN'))
+
+	firefox_driver = webdriver.Firefox(
+		firefox_binary=binary,
+		executable_path=os.environ.get('GECKODRIVER_PATH'),
+		options=options)
+
+	return firefox_driver
+
 
 def sa_initial_pull():
 
     url_service_alerts = 'https://www.ttc.ca/service-alerts'
+    ## Commented for Dev Environment Only ##
+    # options = Options()
+    # options.headless = True
+    # driver = webdriver.Firefox(options=options, executable_path=r'C:\\Users\\Bushman\\geckodriver.exe')
 
-    options = Options()
-    options.headless = True
-    driver = webdriver.Firefox(options=options, executable_path=r'C:\\Users\\Bushman\\geckodriver.exe')
+    driver = load_driver()
     driver.get(url_service_alerts)
 
     results = driver.find_elements(By.CLASS_NAME, "ServiceAlerts_ListAlerts__2BUmu")
@@ -782,9 +805,11 @@ def update_metrics(n, reset_store, sas):
 def dynamic_service_alerts():
     url_service_alerts = 'https://www.ttc.ca/service-alerts'
 
-    options = Options()
-    options.headless = True
-    driver = webdriver.Firefox(options=options, executable_path=r'C:\\Users\\Bushman\\geckodriver.exe')
+    ## Commenting for Dev Environment ##
+    # options = Options()
+    # options.headless = True
+    # driver = webdriver.Firefox(options=options, executable_path=r'C:\\Users\\Bushman\\geckodriver.exe')
+    driver = load_driver()
     driver.get(url_service_alerts)
 
     results = driver.find_elements(By.CLASS_NAME, "ServiceAlerts_ListAlerts__2BUmu")
