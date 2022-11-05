@@ -1,2 +1,2 @@
-worker: python Testing_GTFS.py
+web: gunicorn Testing_GTFS:server
 heroku stack:set heroku-20
