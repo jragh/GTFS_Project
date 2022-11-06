@@ -83,16 +83,13 @@ print(routeListingDF)
 # 	return firefox_driver
 
 def load_driver_chrome():
-    options = Options()
-    options.binary_location = os.environ.get("GOOGLE_CHROME_BIN")
+    options = webdrier.ChromeOptions()
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-gpu")
     options.add_argument("--headless")
-    options.add_argument("start-maximized")
-    options.add_argument("disable-dev-shm-usage")
     
 
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+    driver = webdriver.Chrome(options=options)
     return driver
 
 
@@ -110,6 +107,8 @@ def sa_initial_pull():
     results = driver.find_elements(By.CLASS_NAME, "ServiceAlerts_ListAlerts__2BUmu")
 
     results_list_split = results[0].text.split('\n')
+
+    driver.quit()
 
     ## Function loops through above list to split line and route number into separate stuff
 
@@ -834,6 +833,8 @@ def dynamic_service_alerts():
     results = driver.find_elements(By.CLASS_NAME, "ServiceAlerts_ListAlerts__2BUmu")
 
     results_list_split = results[0].text.split('\n')
+
+    driver.quit()
 
     ## Function loops through above list to split line and route number into separate stuff
 
