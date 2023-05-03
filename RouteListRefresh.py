@@ -39,9 +39,11 @@ def RouteRefresh():
 
         temp = xmltodict.parse(temp_request.content, attr_prefix='')
 
-        tempDF = pd.DataFrame.from_dict(temp['body']['route']['direction'])
+        if 'route' in temp['body'].keys():
 
-        directionDF = directionDF.append(tempDF)
+            tempDF = pd.DataFrame.from_dict(temp['body']['route']['direction'])
+
+            directionDF = directionDF.append(tempDF)
 
     print(len(directionDF))
 

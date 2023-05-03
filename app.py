@@ -83,7 +83,7 @@ print(routeListingDF)
 # 	return firefox_driver
 
 def load_driver_chrome():
-    options = webdrier.ChromeOptions()
+    options = webdriver.ChromeOptions()
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-gpu")
     options.add_argument("--headless")
@@ -114,7 +114,7 @@ def sa_initial_pull():
 
     result_return = []
     result_inner_list = []
-    counter = 0
+    
 
     for i in results_list_split:
         print(i)
@@ -819,7 +819,7 @@ def update_metrics(n, reset_store, sas):
         return [go.Figure(data = [stops_smb, vehicle_smb], layout = layout_int), cardgroup_children]
 
 
-@app.callback([Output('service-alerts-store', 'data'), Output('current-alerts-card', 'children'), Output('alerts-offcanvas-div', 'children')], Input('service_alerts_timer', 'n_intervals'))
+@app.callback([Output('service-alerts-store', 'data'), Output('current-alerts-card', 'children'), Output('alerts-offcanvas-div', 'children')], Input('service-alerts-timer', 'n_intervals'))
 def dynamic_service_alerts():
     url_service_alerts = 'https://www.ttc.ca/service-alerts'
 
@@ -840,7 +840,7 @@ def dynamic_service_alerts():
 
     result_return = []
     result_inner_list = []
-    counter = 0
+    
 
     for i in results_list_split:
         print(i)
